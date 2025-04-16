@@ -12,6 +12,8 @@ from datetime import datetime
 from urllib.parse import parse_qs
 from fake_useragent import UserAgent
 from colorama import init, Fore, Style
+from keep_alive import keep_alive
+keep_alive()
 
 
 init(autoreset=True)
