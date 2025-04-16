@@ -3,3 +3,4 @@ httpx
 colorama
 fake-useragent
 flask
+httpx-socks
