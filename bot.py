@@ -482,119 +482,39 @@ async def main():
                 "chigh": 60,
             }
             w.write(json.dumps(_config, indent=4))
-    while True:
-        if not args.marin:
-            os.system("cls" if os.name == "nt" else "clear")
-        print(banner)
-        datas = open(args.data).read().splitlines()
-        proxies = open(args.proxy).read().splitlines()
+    
+    # Eliminăm bucla while și afișarea meniului, setăm direct opt = "6"
+    if not args.marin:
+        os.system("cls" if os.name == "nt" else "clear")
+    print(banner)
+    datas = open(args.data).read().splitlines()
+    proxies = open(args.proxy).read().splitlines()
 
-        menu = f"""
-{white}data file :{green} {args.data}
-{white}proxy file :{green} {args.proxy}
-{green}total data :{white} {len(datas)}
-{green}total proxy :{white} {len(proxies)}
-
-    {green}1{white}.{green}) {white}set on/off auto claim ({(green + "active" if auto_claim else red + "non-active")})
-    {green}2{white}.{green}) {white}set on/off auto solve task ({(green + "active" if auto_task else red + "non-active")})
-    {green}3{white}.{green}) {white}set on/off auto play game ({(green + "active" if auto_game else red + "non-active")})
-    {green}4{white}.{green}) {white}set game point {green}({low_game_point}-{high_game_point})
-    {green}5{white}.{green}) {white}set wait time before start {green}({low_countdown}-{high_countdown})
-    {green}6{white}.{green}) {white}start bot (multiprocessing)
-    {green}7{white}.{green}) {white}start bot (sync mode)
-        """
-        opt = None
-        if args.action:
-            opt = args.action
+    # Setăm direct opțiunea 6
+    opt = "6"
+    
+    if opt == "6":
+        if not args.worker:
+            worker = int(os.cpu_count() / 2)
+            if worker < 1:
+                worker = 1
         else:
-            print(menu)
-            opt = input(f"{green}input number : {white}")
-            print(f"{white}~" * 50)
-        if opt == "1":
-            config["auto_claim"] = False if auto_claim else True
-            auto_claim = False if auto_claim else True
-            with open(config_file, "w") as w:
-                w.write(json.dumps(config, indent=4))
-            print(f"{green}success update auto claim config")
-            input(f"{blue}press enter to continue")
-            opt = None
-            continue
-        if opt == "2":
-            config["auto_task"] = False if auto_task else True
-            auto_task = False if auto_task else True
-            with open(config_file, "w") as w:
-                w.write(json.dumps(config, indent=4))
-            print(f"{green}success update auto task config !")
-            input(f"{blue}press enter to continue")
-            opt = None
-            continue
-        if opt == "3":
-            config["auto_game"] = False if auto_game else True
-            auto_game = False if auto_game else True
-            with open(config_file, "w") as w:
-                w.write(json.dumps(config, indent=4))
-            print(f"{green}success update auto game config !")
-            input(f"{blue}press enter to continue")
-            opt = None
-            continue
-        if opt == "4":
-            low = input(f"{green}input low game point : {white}") or 240
-            high = input(f"{green}input high game point : {white}") or 250
-            config["low"] = low
-            config["high"] = high
-            low_game_point = low
-            high_game_point = high
-            with open(config_file, "w") as w:
-                w.write(json.dumps(config, indent=4))
+            worker = int(args.worker)
+        sema = asyncio.Semaphore(worker)
 
-            print(f"{green}success update game point !")
-            input(f"{blue}press enter to continue")
-            opt = None
-            continue
-        if opt == "6":
-            if not args.worker:
-                worker = int(os.cpu_count() / 2)
-                if worker < 1:
-                    worker = 1
-            else:
-                worker = int(args.worker)
-            sema = asyncio.Semaphore(worker)
+        async def bound(sem, params):
+            async with sem:
+                return await BlumTod(*params).start()
 
-            async def bound(sem, params):
-                async with sem:
-                    return await BlumTod(*params).start()
-
-            while True:
-                tasks = [
-                    asyncio.create_task(bound(sema, (no, data, proxies)))
-                    for no, data in enumerate(datas)
-                ]
-                result = await asyncio.gather(*tasks)
-                end = int(datetime.now().timestamp())
-                total = min(result) - end
-                await countdown(total)
-        if opt == "7":
-            while True:
-                result = []
-                for no, data in enumerate(datas):
-                    res = await BlumTod(id=no, query=data, proxies=proxies).start()
-                    result.append(res)
-                end = int(datetime.now().timestamp())
-                total = min(result) - end
-                await countdown(total)
-        if opt == "5":
-            low = input(f"{green}input low wait time : {white}") or 30
-            high = input(f"{green}input high wait time : {white}") or 60
-            config["clow"] = low
-            config["chigh"] = high
-            low_countdown = low
-            high_countdown = high
-            with open(config_file, "w") as w:
-                w.write(json.dumps(config, indent=4))
-            print(f"{green}success update wait time !")
-            input(f"{blue}press enter to continue")
-            opt = None
-            continue
+        while True:
+            tasks = [
+                asyncio.create_task(bound(sema, (no, data, proxies)))
+                for no, data in enumerate(datas)
+            ]
+            result = await asyncio.gather(*tasks)
+            end = int(datetime.now().timestamp())
+            total = min(result) - end
+            await countdown(total)
 
 
 if __name__ == "__main__":
