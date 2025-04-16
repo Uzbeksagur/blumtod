@@ -4,6 +4,6 @@
     "auto_game": true,
     "low": "220",
     "high": "320",
-    "clow": "1",
-    "chigh": "2"
+    "clow": "10",
+    "chigh": "20"
 }
